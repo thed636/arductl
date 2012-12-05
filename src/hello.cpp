@@ -104,10 +104,32 @@ struct ArduinoResponse {
 
 #pragma pack()
 
+void move(ArduinoConnection & conn) {
+	unsigned char in[packetSize];
+	const ArduinoResponse & response(*((ArduinoResponse*)in));
+
+	MoveDriveTo msg(1, 70, 1);
+	conn.write((const uint8_t*)(&msg), packetSize);
+	conn.read(in, packetSize);
+
+	boost::this_thread::sleep(boost::posix_time::milliseconds(5000));
+
+	MoveDriveTo msg2(1, 200, -1);
+	conn.write((const uint8_t*)(&msg2), packetSize);
+	conn.read(in, packetSize);
+
+	boost::this_thread::sleep(boost::posix_time::milliseconds(5000));
+
+	MoveDriveTo msgStop(1, 0, 0);
+	conn.write((const uint8_t*)(&msgStop), packetSize);
+	conn.read(in, packetSize);
+}
+
 int main() {
     cout << "!!!Hello World!!!" << endl; // prints !!!Hello World!!!
-    ArduinoConnection conn("COM5");
-
+    ArduinoConnection conn("COM7");
+    move(conn);
+/*
     unsigned char in[packetSize];
     std::vector<clock_t> readTimes;
     std::vector<clock_t> writeTimes;
@@ -145,5 +167,6 @@ int main() {
 //	std::copy(writeTimes.begin(), writeTimes.end(), out);
 //	std::cout << std::endl;
 //	std::copy(readTimes.begin(), readTimes.end(), out);
+ */
     return 0;
 }
