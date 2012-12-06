@@ -7,126 +7,26 @@
 //============================================================================
 
 #include <iostream>
-#include <boost/asio.hpp>
 #include <ctime>
 #include <vector>
 #include <iterator>
 #include <algorithm>
-#include <boost/date_time/posix_time/posix_time.hpp>
-#include <boost/thread/thread.hpp>
-
-using namespace std;
-
-class ArduinoConnection {
-    boost::asio::io_service io_service;
-    boost::asio::serial_port port;
-    std::size_t retries_;
-protected:
-    void waitForProgramRestart(){
-        //boost::this_thread::sleep(boost::posix_time::milliseconds(5000));
-        uint8_t ch(0);
-        read(&ch,1);
-    }
-public:
-    ArduinoConnection( const std::string & portName, const std::size_t baudrate = 115200 )
-    : port(io_service, portName), retries_(0) {
-        port.set_option(boost::asio::serial_port_base::baud_rate(115200));
-        port.set_option(boost::asio::serial_port_base::character_size(8));
-        port.set_option(
-                boost::asio::serial_port_base::flow_control(
-                        boost::asio::serial_port_base::flow_control::none));
-        port.set_option(
-                boost::asio::serial_port_base::parity(
-                        boost::asio::serial_port_base::parity::none));
-        port.set_option(
-                boost::asio::serial_port_base::stop_bits(
-                        boost::asio::serial_port_base::stop_bits::one));
-        waitForProgramRestart();
-    }
-
-    std::size_t write( const uint8_t * out, std::size_t size ) {
-        return port.write_some(boost::asio::buffer(out, size));
-    }
-
-    std::size_t read( uint8_t * in, std::size_t size ) {
-        for ( std::size_t nbytes = 0;nbytes != size;) {
-            if (nbytes) {
-                retries_++;
-            }
-            nbytes += port.read_some(boost::asio::buffer(in + nbytes, size - nbytes));
-        }
-        return size;
-    }
-
-    std::size_t retries() const {
-        return retries_;
-    }
-    void close() {
-        port.close();
-    }
-};// class ArduinoConnection
-
-//|int                |int int int
-//|byte|byte|byte|byte|
-//|cmd |
-#pragma pack(1)
-const std::size_t packetSize = 16;
-
-struct ArduinoMessage {
-    uint8_t type;
-    ArduinoMessage( char type ) : type(type) {}
-};
-
-struct PwmOut : public ArduinoMessage {
-    enum {messageType = 0x1, freeSize = packetSize - sizeof(ArduinoMessage) - 3};
-    uint8_t pin;
-    uint8_t value;
-    uint8_t zero;
-    uint8_t dummy[freeSize];
-    PwmOut( uint8_t pin, uint8_t value ) : ArduinoMessage(messageType), pin(pin), value(value), zero(0) {}
-};
-
-struct MoveDriveTo : public ArduinoMessage {
-    enum {messageType = 0x2, freeSize = packetSize - sizeof(ArduinoMessage) - 7};
-    uint8_t drive;
-    uint8_t speed;
-    int32_t x;
-    uint8_t zero;
-    uint8_t dummy[freeSize];
-    MoveDriveTo(uint8_t drive, uint8_t speed, int32_t x)
-    : ArduinoMessage(messageType), drive(drive), speed(speed), x(x), zero(0) {}
-};
-
-struct ArduinoResponse {
-    uint8_t result;
-    ArduinoResponse(uint8_t result = 0) : result(result) {}
-};
-
-#pragma pack()
+#include "pwm_drive.h"
+#include "connection.h"
 
 void move(ArduinoConnection & conn) {
-	unsigned char in[packetSize];
-	const ArduinoResponse & response(*((ArduinoResponse*)in));
-
-	MoveDriveTo msg(1, 70, 1);
-	conn.write((const uint8_t*)(&msg), packetSize);
-	conn.read(in, packetSize);
-
-	boost::this_thread::sleep(boost::posix_time::milliseconds(5000));
-
-	MoveDriveTo msg2(1, 200, -1);
-	conn.write((const uint8_t*)(&msg2), packetSize);
-	conn.read(in, packetSize);
-
-	boost::this_thread::sleep(boost::posix_time::milliseconds(5000));
-
-	MoveDriveTo msgStop(1, 0, 0);
-	conn.write((const uint8_t*)(&msgStop), packetSize);
-	conn.read(in, packetSize);
+    PwmDrive drive(conn,1);
+    drive.speed(70);
+    drive.moveTo(1);
+    boost::this_thread::sleep(boost::posix_time::milliseconds(5000));
+    drive.speed(200);
+    drive.moveTo(-1);
+    boost::this_thread::sleep(boost::posix_time::milliseconds(5000));
+    drive.stop();
 }
 
 int main() {
-    cout << "!!!Hello World!!!" << endl; // prints !!!Hello World!!!
+    std::cout << "!!!Hello World!!!" << std::endl; // prints !!!Hello World!!!
     ArduinoConnection conn("COM7");
     move(conn);
 /*
