@@ -21,7 +21,7 @@ protected:
     void waitForProgramRestart(){
         //boost::this_thread::sleep(boost::posix_time::milliseconds(5000));
         uint8_t ch(0);
-        read(&ch,1);
+        receive(&ch,1);
     }
 public:
     ArduinoConnection( const std::string & portName, const std::size_t baudrate = 115200 )
@@ -40,11 +40,16 @@ public:
         waitForProgramRestart();
     }
 
-    std::size_t write( const uint8_t * out, std::size_t size ) {
+    std::size_t send( const uint8_t * out, std::size_t size ) {
         return port.write_some(boost::asio::buffer(out, size));
     }
 
-    std::size_t read( uint8_t * in, std::size_t size ) {
+    template <typename Request>
+    std::size_t send( const Request & request ) {
+        return send(reinterpret_cast<const uint8_t*>(&request), sizeof(request));
+    }
+
+    std::size_t receive( uint8_t * in, std::size_t size ) {
         for ( std::size_t nbytes = 0;nbytes != size;) {
             if (nbytes) {
                 retries_++;
@@ -54,18 +59,24 @@ public:
         return size;
     }
 
-    std::size_t retries() const {
-        return retries_;
-    }
-    void close() {
-        port.close();
+    template<typename Response >
+    Response & receive(Response & response) {
+        receive(reinterpret_cast<uint8_t*>(&response), sizeof(response));
+        return response;
     }
 
     template< typename Request, typename Response >
     Response & invoke( const Request & request, Response & response) {
-        write((const uint8_t*)(&request), sizeof(request));
-        read((uint8_t*)(&response), sizeof(response));
-        return response;
+        send(request);
+        return receive(response);
+    }
+
+    std::size_t retries() const {
+        return retries_;
+    }
+
+    void close() {
+        port.close();
     }
 };// class ArduinoConnection
 

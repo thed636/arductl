@@ -14,7 +14,7 @@
 class PwmDrive {
 public:
     typedef uint8_t speed_type;
-    typedef int32_t position_type;
+    typedef int16_t position_type;
     PwmDrive(ArduinoConnection & conn, uint8_t number) : speed_(0), conn(conn), number(number) {}
     void speed(speed_type v) {
         speed_ = v;
@@ -33,6 +33,29 @@ public:
         if(conn.invoke(StopDrive(number), response).result) {
             throw std::runtime_error("Drive error!");
         }
+    }
+    position_type position() {
+        DrivePosition response;
+        if(conn.invoke(GetDrivePosition(number), response).result) {
+            throw std::runtime_error("Drive error!");
+        }
+        return response.pos;
+    }
+
+    position_type error() {
+        DrivePositionError response;
+        if(conn.invoke(GetDrivePositionError(number), response).result) {
+            throw std::runtime_error("Drive error!");
+        }
+        return response.error;
+    }
+
+    position_type actualSpeed() {
+        DriveSpeed response;
+        if(conn.invoke(GetDriveSpeed(number), response).result) {
+            throw std::runtime_error("Drive error!");
+        }
+        return response.speed;
     }
 private:
     speed_type speed_;
