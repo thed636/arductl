@@ -77,6 +77,43 @@ struct GetDriveSpeed : public ArduinoMessage {
     : ArduinoMessage(messageType), drive(drive), zero(0) {}
 };
 
+#define TRANSFER_FLOAT( name )\
+    int32_t name##_;\
+    float name() const { return float(name##_) / float(scaleFactor);}\
+    void name( float v ) { name##_ = v * float(scaleFactor);}
+
+struct ConfigureDrive : public ArduinoMessage {
+    enum {messageType = 0x7};
+    enum { scaleFactor = 10000 };
+    uint8_t drive;
+    struct PositionRegulator {
+        TRANSFER_FLOAT( Kp );
+    } pos;
+
+    struct SpeedRegulator {
+        TRANSFER_FLOAT( Kp )
+        TRANSFER_FLOAT( Kip );
+        TRANSFER_FLOAT( Kdp )
+    } speed;
+    ConfigureDrive() : ArduinoMessage(messageType), drive(0) {}
+    ConfigureDrive( uint8_t number, float Kpp, float Kp, float Kip, float Kdp )
+    : ArduinoMessage(messageType), drive(number) {
+        speed.Kp(Kp);
+        speed.Kip(Kip);
+        speed.Kdp(Kdp);
+        pos.Kp(Kpp);
+    }
+};
+
+struct GetDriveState : public ArduinoMessage {
+    enum {messageType = 0x8};
+    uint8_t drive;
+    GetDriveState()
+    : ArduinoMessage(messageType), drive(0) {}
+    GetDriveState(uint8_t drive)
+    : ArduinoMessage(messageType), drive(drive) {}
+};
+
 struct ArduinoResponse{
     uint8_t result;
     ArduinoResponse(uint8_t result = 0) : result(result) {}
@@ -95,8 +132,25 @@ struct DrivePositionError : ArduinoResponse{
 
 struct DriveSpeed : ArduinoResponse{
     int16_t speed;
-    DriveSpeed(int16_t error=0, uint8_t result = 0) : ArduinoResponse(result), speed(speed) {}
+    DriveSpeed(int16_t speed=0, uint8_t result = 0) : ArduinoResponse(result), speed(speed) {}
 };
+
+struct DriveState {
+    int16_t pos;
+    int16_t error;
+    int16_t speed;
+    int16_t speedError;
+    int16_t out;
+    DriveState() : pos(0), error(0), speed(0), speedError(0), out(0) {}
+};
+
+struct DriveStateResponse : ArduinoResponse{
+    DriveState state;
+    DriveStateResponse( const DriveState & state, uint8_t result = 0 )
+    : ArduinoResponse(result), state(state) {}
+    DriveStateResponse() : ArduinoResponse(0) {}
+};
+
 #pragma pack()
 
 
