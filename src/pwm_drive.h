@@ -13,7 +13,7 @@
 
 class PwmDrive {
 public:
-    typedef uint8_t speed_type;
+    typedef int16_t speed_type;
     typedef int16_t position_type;
     PwmDrive(ArduinoConnection & conn, uint8_t number) : speed_(0), conn(conn), number(number) {}
     void speed(speed_type v) {
@@ -28,6 +28,28 @@ public:
             throw std::runtime_error("Drive error!");
         }
     }
+
+    void moveSpeed(speed_type speed) {
+        ArduinoResponse response;
+        if(conn.invoke(MoveDriveSpeed(number, speed), response).result) {
+            throw std::runtime_error("Drive error!");
+        }
+    }
+
+    void seek(speed_type speed) {
+        ArduinoResponse response;
+        if(conn.invoke(SeekDriveSpeed(number, speed), response).result) {
+            throw std::runtime_error("Drive error!");
+        }
+    }
+
+    void reset() {
+        ArduinoResponse response;
+        if(conn.invoke(ResetDrive(number), response).result) {
+            throw std::runtime_error("Drive error!");
+        }
+    }
+
     void stop() {
         ArduinoResponse response;
         if(conn.invoke(StopDrive(number), response).result) {
@@ -58,9 +80,9 @@ public:
         return response.speed;
     }
 
-    void configure( float Kpp, float Kp, float Kip, float Kdp ) {
+    void configure( float Kpp, float Kp, float Kip, float Kdp, int16_t deadZone = 50 ) {
         ArduinoResponse response;
-        if(conn.invoke(ConfigureDrive(number, Kpp, Kp, Kip, Kdp ), response).result) {
+        if(conn.invoke(ConfigureDrive(number, Kpp, Kp, Kip, Kdp, deadZone ), response).result) {
             throw std::runtime_error("Drive error!");
         }
     }

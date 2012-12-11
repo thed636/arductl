@@ -95,13 +95,17 @@ struct ConfigureDrive : public ArduinoMessage {
         TRANSFER_FLOAT( Kip );
         TRANSFER_FLOAT( Kdp )
     } speed;
+    struct Pwm {
+        int16_t deadZone;
+    } pwm;
     ConfigureDrive() : ArduinoMessage(messageType), drive(0) {}
-    ConfigureDrive( uint8_t number, float Kpp, float Kp, float Kip, float Kdp )
+    ConfigureDrive( uint8_t number, float Kpp, float Kp, float Kip, float Kdp, int16_t deadZone )
     : ArduinoMessage(messageType), drive(number) {
         speed.Kp(Kp);
         speed.Kip(Kip);
         speed.Kdp(Kdp);
         pos.Kp(Kpp);
+        pwm.deadZone = deadZone;
     }
 };
 
@@ -111,6 +115,35 @@ struct GetDriveState : public ArduinoMessage {
     GetDriveState()
     : ArduinoMessage(messageType), drive(0) {}
     GetDriveState(uint8_t drive)
+    : ArduinoMessage(messageType), drive(drive) {}
+};
+
+struct MoveDriveSpeed : public ArduinoMessage {
+    enum {messageType = 0x9};
+    uint8_t drive;
+    int16_t speed;
+    MoveDriveSpeed()
+    : ArduinoMessage(messageType), drive(0), speed(0) {}
+    MoveDriveSpeed(uint8_t drive, int16_t speed)
+    : ArduinoMessage(messageType), drive(drive), speed(speed) {}
+};
+
+struct SeekDriveSpeed : public ArduinoMessage {
+    enum {messageType = 0xA};
+    uint8_t drive;
+    int16_t speed;
+    SeekDriveSpeed()
+    : ArduinoMessage(messageType), drive(0), speed(0) {}
+    SeekDriveSpeed(uint8_t drive, int16_t speed)
+    : ArduinoMessage(messageType), drive(drive), speed(speed) {}
+};
+
+struct ResetDrive : public ArduinoMessage {
+    enum {messageType = 0xB};
+    uint8_t drive;
+    ResetDrive()
+    : ArduinoMessage(messageType), drive(0) {}
+    ResetDrive(uint8_t drive)
     : ArduinoMessage(messageType), drive(drive) {}
 };
 
