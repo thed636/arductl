@@ -10,92 +10,55 @@
 
 #include "messages.h"
 #include "connection.h"
-
+#include "invoker.h"
 class PwmDrive {
 public:
     typedef int16_t speed_type;
     typedef int16_t position_type;
-    PwmDrive(ArduinoConnection & conn, uint8_t number) : speed_(0), conn(conn), number(number) {}
-    void speed(speed_type v) {
-        speed_ = v;
-    }
-    speed_type speed() const {
-        return speed_;
-    }
+
+    PwmDrive(ArduinoConnection & conn, uint8_t number) : conn(conn), number(number) {}
+
     void moveTo(position_type x) {
-        ArduinoResponse response;
-        if(conn.invoke(MoveDriveTo(number, speed(), x), response).result) {
-            throw std::runtime_error("Drive error!");
-        }
+        Invoker<MoveTo>(conn,number,x);
     }
 
     void moveSpeed(speed_type speed) {
-        ArduinoResponse response;
-        if(conn.invoke(MoveDriveSpeed(number, speed), response).result) {
-            throw std::runtime_error("Drive error!");
-        }
+        Invoker<MoveSpeed>(conn,number,speed);
     }
 
     void seek(speed_type speed) {
-        ArduinoResponse response;
-        if(conn.invoke(SeekDriveSpeed(number, speed), response).result) {
-            throw std::runtime_error("Drive error!");
-        }
+        Invoker<SeekDriveSpeed>(conn,number,speed);
     }
 
     void reset() {
-        ArduinoResponse response;
-        if(conn.invoke(ResetDrive(number), response).result) {
-            throw std::runtime_error("Drive error!");
-        }
+        Invoker<ResetDrive>(conn,number);
     }
 
     void stop() {
-        ArduinoResponse response;
-        if(conn.invoke(StopDrive(number), response).result) {
-            throw std::runtime_error("Drive error!");
-        }
-    }
-    position_type position() {
-        DrivePosition response;
-        if(conn.invoke(GetDrivePosition(number), response).result) {
-            throw std::runtime_error("Drive error!");
-        }
-        return response.pos;
-    }
-
-    position_type error() {
-        DrivePositionError response;
-        if(conn.invoke(GetDrivePositionError(number), response).result) {
-            throw std::runtime_error("Drive error!");
-        }
-        return response.error;
-    }
-
-    position_type actualSpeed() {
-        DriveSpeed response;
-        if(conn.invoke(GetDriveSpeed(number), response).result) {
-            throw std::runtime_error("Drive error!");
-        }
-        return response.speed;
+        moveSpeed(0);
     }
 
     void configure( float Kpp, float Kp, float Kip, float Kdp, int16_t deadZone = 50 ) {
-        ArduinoResponse response;
-        if(conn.invoke(ConfigureDrive(number, Kpp, Kp, Kip, Kdp, deadZone ), response).result) {
-            throw std::runtime_error("Drive error!");
-        }
+        Invoker<ConfigureDrive>(conn, number, Kpp, Kp, Kip, Kdp, deadZone );
     }
 
-    DriveState state() {
-        DriveStateResponse response;
-        if(conn.invoke(GetDriveState(number), response).result) {
-            throw std::runtime_error("Drive error!");
-        }
-        return response.state;
+    DriveState state() const {
+        return Invoker<GetDriveState>(conn,number).response().state;
     }
+
+    speed_type speed() const {
+        return state().speed;
+    }
+
+    position_type position() const {
+        return state().pos;
+    }
+
+    position_type positionError() const {
+        return state().error;
+    }
+
 private:
-    speed_type speed_;
     ArduinoConnection & conn;
     uint8_t number;
 };

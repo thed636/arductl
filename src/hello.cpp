@@ -32,6 +32,31 @@ void waitForExec(PwmDrive & drive) {
     std::cout << s <<  std::endl;
 }
 
+bool driveMoveComplete(const DriveState & s) {
+    return s.error==0 && s.speedError==0;
+}
+
+bool driveMoveInomplete(const DriveState & s) {
+    return !driveMoveComplete(s) ;
+}
+
+DriveState getState( const PwmDrive & drive ) {
+    return drive.state();
+}
+
+template <typename Iter>
+void waitForExecDrives(Iter first, Iter last) {
+    std::vector<DriveState> states;
+    std::transform(first, last, std::back_inserter(states), &getState);
+    while( std::find_if(states.begin(), states.end(), &driveMoveInomplete ) != states.end())  {
+        boost::this_thread::sleep(boost::posix_time::milliseconds(10));
+        std::ostream_iterator<DriveState> out(std::cout, "\n");
+        std::copy(states.begin(), states.end(), out);
+        states.clear();
+        std::transform(first, last, std::back_inserter(states), &getState);
+    }
+}
+
 void move(ArduinoConnection & conn) {
     PwmDrive drive(conn,1);
     const int target = 500;
@@ -53,38 +78,31 @@ void move(ArduinoConnection & conn) {
 }
 
 
-void moveTo(ArduinoConnection & conn, int16_t target) {
-    PwmDrive drive(conn,1);
-    drive.configure( 10, .5, 2, 0.01, 60 );
+void moveTo(PwmDrive & drive, int16_t target) {
     drive.moveTo(target);
     waitForExec(drive);
     boost::this_thread::sleep(boost::posix_time::milliseconds(1000));
 }
 
-void moveSpeed(ArduinoConnection & conn, int16_t speed) {
-    PwmDrive drive(conn,1);
-    drive.configure( 0.5, .5, 1, 0.01, 60 );
+void moveSpeed(PwmDrive & drive, int16_t speed) {
     drive.moveSpeed(speed);
     waitForExec(drive);
     boost::this_thread::sleep(boost::posix_time::milliseconds(1000));
 }
 
-void calibrate(ArduinoConnection & conn) {
-    PwmDrive drive(conn,1);
-    drive.configure( 5, 0.6, 4, 0.005, 60 );
+void calibrate(PwmDrive & drive) {
     drive.moveTo(50);
     waitForExec(drive);
-    drive.seek(60);
+    drive.seek(-30);
     waitForExec(drive);
     boost::this_thread::sleep(boost::posix_time::milliseconds(1000));
     drive.reset();
 }
 
-void measure(ArduinoConnection & conn){
-    PwmDrive drive(conn,1);
+void measure(PwmDrive & drive){
     drive.moveTo(40);
     waitForExec(drive);
-    drive.seek(60);
+    drive.seek(40);
     waitForExec(drive);
     boost::this_thread::sleep(boost::posix_time::milliseconds(1000));
 }
@@ -92,13 +110,33 @@ void measure(ArduinoConnection & conn){
 int main() {
     std::cout << "!!!Hello World!!!" << std::endl; // prints !!!Hello World!!!
     ArduinoConnection conn("COM7");
+    std::vector<PwmDrive> drives = { PwmDrive(conn,1), PwmDrive(conn,2), PwmDrive(conn,3), PwmDrive(conn,4), PwmDrive(conn,5) };
+    drives[0].configure( 1, 0.15, 40, 0.001, 75 );
+    drives[1].configure( 1, 0.10, 40, 0.001, 100 );
+    drives[2].configure( 1, 0.10, 40, 0.001, 100 );
+    drives[3].configure( 1, 0.10, 40, 0.001, 100 );
+    drives[4].configure( 1, 0.15, 40, 0.001, 120 );
+    PwmDrive & drive(drives[0]);
     printHeader( std::cout ) << std::endl;
     //move(conn);
-    //moveSpeed(conn, 60);
-    moveTo(conn, 10);
-    //calibrate(conn);
+    //moveSpeed(drive2, 10);
+    //drives[4].moveTo(-7);
+    drives[1].moveTo(-120);
+    drives[2].moveTo(240);
+    drives[3].moveTo(-95);
+//    for(unsigned i(3); i!=0; --i ) {
+//        drives[i].moveTo(50);
+//        //moveTo(drives[i], 25);
+//    }
+    waitForExecDrives(drives.begin(), drives.end());
+    for (auto drive : drives) {
+        drive.moveTo(0);
+    }
+    waitForExecDrives(drives.begin(), drives.end());
+
+    calibrate(drive);
     //printHeader( std::cout ) << std::endl;
-    //measure(conn);
+    //measure(drive);
     //moveSpeed(conn, 140);
 //    int16_t target = 0;
 //    while(target>-15000) {
