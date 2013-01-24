@@ -19,9 +19,10 @@ class ArduinoConnection {
     std::size_t retries_;
 protected:
     void waitForProgramRestart(){
-        //boost::this_thread::sleep(boost::posix_time::milliseconds(5000));
-        uint8_t ch(0);
-        receive(&ch,1);
+        boost::this_thread::sleep(boost::posix_time::milliseconds(1000));
+        uint8_t ch[4] = {0, 0, 0, 0};
+        port.read_some(boost::asio::buffer(ch, 4));
+        //receive(ch);
     }
 public:
     ArduinoConnection( const std::string & portName, const std::size_t baudrate = 115200 )
