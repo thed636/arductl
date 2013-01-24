@@ -107,9 +107,10 @@ void measure(PwmDrive & drive){
     boost::this_thread::sleep(boost::posix_time::milliseconds(1000));
 }
 
-int main() {
+int main(int argc, char **argv) {
+    const std::string port = argc>1 ? argv[1] : "COM7";
     std::cout << "!!!Hello World!!!" << std::endl; // prints !!!Hello World!!!
-    ArduinoConnection conn("COM7");
+    ArduinoConnection conn(port);
     std::vector<PwmDrive> drives = { PwmDrive(conn,1), PwmDrive(conn,2), PwmDrive(conn,3), PwmDrive(conn,4), PwmDrive(conn,5) };
     drives[0].configure( 4.5, 2, 2, 0.1, 65 );
     drives[1].configure( 5, 2, 2, 0.1, 95 );
