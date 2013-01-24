@@ -26,7 +26,7 @@ void waitForExec(PwmDrive & drive) {
     DriveState s(drive.state());
     while( s.error || s.speedError )  {
         std::cout << s <<  std::endl;
-        boost::this_thread::sleep(boost::posix_time::milliseconds(3));
+        boost::this_thread::sleep(boost::posix_time::milliseconds(1));
         s = drive.state();
     }
     std::cout << s <<  std::endl;
@@ -93,7 +93,7 @@ void moveSpeed(PwmDrive & drive, int16_t speed) {
 void calibrate(PwmDrive & drive) {
     drive.moveTo(50);
     waitForExec(drive);
-    drive.seek(-30);
+    drive.seek(-60);
     waitForExec(drive);
     boost::this_thread::sleep(boost::posix_time::milliseconds(1000));
     drive.reset();
@@ -111,30 +111,34 @@ int main() {
     std::cout << "!!!Hello World!!!" << std::endl; // prints !!!Hello World!!!
     ArduinoConnection conn("COM7");
     std::vector<PwmDrive> drives = { PwmDrive(conn,1), PwmDrive(conn,2), PwmDrive(conn,3), PwmDrive(conn,4), PwmDrive(conn,5) };
-    drives[0].configure( 1, 0.15, 40, 0.001, 75 );
-    drives[1].configure( 1, 0.10, 40, 0.001, 100 );
-    drives[2].configure( 1, 0.10, 40, 0.001, 100 );
-    drives[3].configure( 1, 0.10, 40, 0.001, 100 );
+    drives[0].configure( 4.5, 2, 2, 0.1, 65 );
+    drives[1].configure( 5, 2, 2, 0.1, 95 );
+    drives[2].configure( 6, 2, 2, 0.1, 75 );
+    drives[3].configure( 3.5, 2, 1.5, 0.1, 65 );
     drives[4].configure( 1, 0.15, 40, 0.001, 120 );
-    PwmDrive & drive(drives[0]);
     printHeader( std::cout ) << std::endl;
     //move(conn);
     //moveSpeed(drive2, 10);
     //drives[4].moveTo(-7);
+    //moveTo(drives[3], 5);
+    //moveTo(drives[2], -240);
+//    moveTo(drives[0], -50);
+
+    calibrate(drives[0]);
+    drives[0].moveTo(-180);
     drives[1].moveTo(-120);
     drives[2].moveTo(240);
     drives[3].moveTo(-95);
-//    for(unsigned i(3); i!=0; --i ) {
-//        drives[i].moveTo(50);
-//        //moveTo(drives[i], 25);
-//    }
     waitForExecDrives(drives.begin(), drives.end());
+    boost::this_thread::sleep(boost::posix_time::milliseconds(5000));
     for (auto drive : drives) {
         drive.moveTo(0);
     }
     waitForExecDrives(drives.begin(), drives.end());
 
-    calibrate(drive);
+
+//    moveTo(drives[3], 5);
+//    moveTo(drives[0], 0);
     //printHeader( std::cout ) << std::endl;
     //measure(drive);
     //moveSpeed(conn, 140);
